@@ -65,8 +65,9 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
   // init camera
   _initCamera() {
-    _cameraDescription = _cameras.firstWhere(
-        (element) => element.lensDirection == CameraLensDirection.front);
+  _cameraDescription = _cameras.firstWhere(
+    (element) => element.lensDirection == CameraLensDirection.back,
+    orElse: () => _cameras.first);
     _cameraController = CameraController(
         _cameraDescription, ResolutionPreset.high,
         imageFormatGroup: Platform.isIOS

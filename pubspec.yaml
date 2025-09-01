@@ -69,6 +69,9 @@ flutter:
 
   assets:
     - assets/Person-Foot-Detection.tflite
+    - assets/images/tfl_logo.png
+    - assets/gesture_classification.tflite
+    - assets/labels.txt
 
   # To add assets to your application, add an assets section, like this:
   # assets:
