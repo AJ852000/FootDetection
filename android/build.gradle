@@ -1,0 +1,65 @@
+plugins {
+    id 'com.android.application' version '8.6.0' apply false
+    id 'org.jetbrains.kotlin.android' version '2.1.0' apply false
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.buildDir = '../build'
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+    project.evaluationDependsOn(':app')
+}
+
+// Workaround: Some Flutter plugins in the pub cache (older plugins) may not set the
+// required `namespace` in their android module build.gradle. Newer Android Gradle
+// Plugin versions (AGP 8+) require a namespace. Set a safe default namespace for
+// any library module that doesn't declare one so the build can configure.
+subprojects { proj ->
+    // small helper to configure a single project (safe to call immediately)
+    def configureNamespace = { p ->
+        try {
+            if (p.plugins.hasPlugin('com.android.library') || p.plugins.hasPlugin('com.android.application')) {
+                def androidExt = p.extensions.findByName('android')
+                if (androidExt != null) {
+                    def hasNamespace = false
+                    try {
+                        hasNamespace = androidExt.namespace != null && androidExt.namespace.toString().trim().length() > 0
+                    } catch (Exception ignored) {
+                        hasNamespace = false
+                    }
+
+                    if (!hasNamespace) {
+                        // Build a safe namespace from the project name. Adjust prefix if you want a different base.
+                        def safeName = p.name.replaceAll('[^A-Za-z0-9_.]', '_')
+                        def fallback = "com.example.${safeName}"
+                        try {
+                            androidExt.namespace = fallback
+                            logger.lifecycle("Set fallback namespace for project ${p.path} -> ${fallback}")
+                        } catch (Exception e) {
+                            // ignore - best-effort
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // swallow errors to avoid breaking configuration
+        }
+    }
+
+    // If the subproject has already been evaluated, configure immediately; otherwise attach a safe afterEvaluate.
+    if (proj.state.executed) {
+        configureNamespace(proj)
+    } else {
+        proj.afterEvaluate { p -> configureNamespace(p) }
+    }
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
